@@ -1,0 +1,27 @@
+# AWS additions: logs go to CloudWatch, content and the model key come from S3 and Parameter Store.
+x-awslogs: &awslogs
+  driver: awslogs
+  options: &opts
+    awslogs-region: ${AWS_REGION}
+    mode: non-blocking
+    max-buffer-size: 4m
+
+services:
+  librechat:
+    logging:
+      <<: *awslogs
+      options: { <<: *opts, awslogs-group: /asktala/librechat, awslogs-stream: librechat }
+  mongodb:
+    logging:
+      <<: *awslogs
+      options: { <<: *opts, awslogs-group: /asktala/mongodb, awslogs-stream: mongodb }
+  gateway:
+    environment:
+      - AWS_REGION=${AWS_REGION}
+      - KB_BUCKET=${BUCKET}
+      - KB_PREFIX=content/
+      - MODEL_KEY_PARAM=/asktala/model/api_key
+      - CONTENT_DIR=
+    logging:
+      <<: *awslogs
+      options: { <<: *opts, awslogs-group: /asktala/gateway, awslogs-stream: gateway }

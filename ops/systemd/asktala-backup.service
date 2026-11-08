@@ -1,0 +1,7 @@
+[Unit]
+Description=Ask Tala database backup to S3
+[Service]
+Type=oneshot
+ExecStart=/opt/asktala/ops/backup.sh
+StandardOutput=append:/var/log/asktala/backup.log
+StandardError=append:/var/log/asktala/backup.log

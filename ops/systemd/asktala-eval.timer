@@ -1,0 +1,7 @@
+[Unit]
+Description=Ask Tala test questions every three hours
+[Timer]
+OnCalendar=*-*-* 00/3:20:00
+Persistent=true
+[Install]
+WantedBy=timers.target

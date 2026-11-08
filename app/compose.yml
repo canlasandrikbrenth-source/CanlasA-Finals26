@@ -1,0 +1,52 @@
+# Runs on a laptop as-is. On AWS it is combined with compose.aws.yml.
+services:
+  librechat:
+    build:
+      context: ./brand
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-registry.librechat.ai/librechat-ai/librechat:v0.8.8}
+    container_name: asktala-app
+    restart: always
+    depends_on: [mongodb, gateway]
+    ports:
+      - "3080:3080"
+    env_file: [ "${ENV_FILE:-.env}" ]
+    environment:
+      - HOST=0.0.0.0
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://mongodb:27017/AskTala
+      - CONFIG_PATH=/app/librechat.yaml
+      - APP_TITLE=Ask Tala
+      - CUSTOM_FOOTER=Ask Tala · Tala Ridge College is fictional · Student project, invented data only
+      - HELP_AND_FAQ_URL=/
+      - ENDPOINTS=custom
+      - SEARCH=false
+      - DISABLE_COMPRESSION=true
+      - ALLOW_SOCIAL_LOGIN=false
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml:ro
+      - uploads:/app/uploads
+      - images:/app/client/public/images
+
+  mongodb:
+    image: mongo:8.0.20
+    container_name: asktala-mongo
+    restart: always
+    command: mongod --noauth --wiredTigerCacheSizeGB 0.25
+    volumes:
+      - mongo-data:/data/db
+
+  gateway:
+    build: ./gateway
+    container_name: asktala-gateway
+    restart: always
+    env_file: [ "${ENV_FILE:-.env}" ]
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ../content:/content:ro
+
+volumes:
+  mongo-data:
+  uploads:
+  images:

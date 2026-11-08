@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: One personal IAM user per person. The user has no admin rights and switches into an admin role with MFA.
+
+Parameters:
+  UserName:
+    Type: String
+
+Resources:
+  OperatorUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref UserName
+      Policies:
+        - PolicyName: manage-own-mfa-and-switch-role
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: iam:ListVirtualMFADevices
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - iam:ChangePassword
+                  - iam:GetUser
+                  - iam:GetLoginProfile
+                  - iam:ListMFADevices
+                  - iam:EnableMFADevice
+                Resource: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:user/${!aws:username}"
+              - Effect: Allow
+                Action:
+                  - iam:CreateVirtualMFADevice
+                  - iam:EnableMFADevice
+                Resource: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:mfa/*"
+              - Effect: Allow
+                Action: sts:AssumeRole
+                Resource: !GetAtt AdminRole.Arn
+  AdminRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub asktala-admin-${UserName}
+      MaxSessionDuration: 14400
+      ManagedPolicyArns: [arn:aws:iam::aws:policy/AdministratorAccess]
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { AWS: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root" }
+            Action: sts:AssumeRole
+            Condition:
+              Bool: { "aws:MultiFactorAuthPresent": "true" }
+
+Outputs:
+  SwitchRoleUrl:
+    Value: !Sub https://signin.aws.amazon.com/switchrole?account=${AWS::AccountId}&roleName=${AdminRole}

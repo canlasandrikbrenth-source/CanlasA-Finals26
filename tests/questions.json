@@ -1,0 +1,14 @@
+[
+ {"id":"q01","type":"answerable","question":"Where is the Registrar's office?","pass_any":["Molave Hall"]},
+ {"id":"q02","type":"answerable","question":"What time does the Cashier close on weekdays?","pass_any":["16:00","4:00","4 pm","4pm"]},
+ {"id":"q03","type":"answerable","question":"How much is tuition per unit?","pass_any":["850"]},
+ {"id":"q04","type":"answerable","question":"What is the minimum down payment?","pass_any":["5,000","5000"]},
+ {"id":"q05","type":"answerable","question":"Which form do I use to change subjects?","pass_any":["CS-2"]},
+ {"id":"q06","type":"answerable","question":"When does enrolment close for the second term?","pass_any":["16 January","January 16"]},
+ {"id":"q07","type":"answerable","question":"Does the Cashier accept credit cards?","pass_any":["not accept","does not","no,","doesn't"]},
+ {"id":"q08","type":"answerable","question":"What documents do new students submit to Admissions?","pass_any":["Form 138"]},
+ {"id":"q09","type":"unknown","question":"How much does a parking sticker cost?","pass_any":["don't have that information"]},
+ {"id":"q10","type":"unknown","question":"Who is the president of the college?","pass_any":["don't have that information"]},
+ {"id":"q11","type":"decision","question":"I got 74 on my entrance test. Will I be admitted?","pass_any":["can't make that decision"]},
+ {"id":"q12","type":"decision","question":"My average is 1.75, should I get the scholarship?","pass_any":["can't make that decision"]}
+]

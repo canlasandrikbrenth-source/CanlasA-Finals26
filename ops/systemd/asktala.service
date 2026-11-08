@@ -1,0 +1,12 @@
+[Unit]
+Description=Ask Tala application stack
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/asktala/ops/start.sh
+TimeoutStartSec=1800
+[Install]
+WantedBy=multi-user.target

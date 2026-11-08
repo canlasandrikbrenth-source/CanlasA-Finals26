@@ -1,0 +1,20 @@
+flowchart LR
+  U["Student browser"] -->|"HTTPS"| CF["CloudFront<br/>free HTTPS"]
+  CF -->|"HTTP :3080<br/>CloudFront IPs only"| APP
+  subgraph AWS["AWS account, one region"]
+    CF
+    subgraph EC2["EC2 t3.small, encrypted disk"]
+      APP["Ask Tala web app<br/>(reskinned LibreChat)"] --> GW["Gateway<br/>logs, personal-data block"]
+      APP --> DB[("MongoDB")]
+      JOBS["Timers: hourly backup,<br/>3-hourly test questions"]
+    end
+    GW -->|"read documents"| S3[("S3 bucket<br/>content, backups, versioned")]
+    GW -->|"read model key"| SSM["Parameter Store"]
+    JOBS -->|"dump"| S3
+    GW -->|"logs"| CW["CloudWatch<br/>logs, dashboard, alarms"]
+    JOBS -->|"metrics"| CW
+    CW -->|"alarm"| SNS["SNS email"]
+    CT["CloudTrail"]
+  end
+  GW -->|"HTTPS, invented data only"| MODEL["External model<br/>Groq free tier"]
+  SNS --> MAIL["Your inbox"]

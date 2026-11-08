@@ -1,0 +1,6 @@
+.env
+*.env
+!app/.env.example
+__pycache__/
+*.pem
+evidence-private/

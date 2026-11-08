@@ -1,0 +1,7 @@
+[Unit]
+Description=Ask Tala scheduled test questions
+[Service]
+Type=oneshot
+ExecStart=/opt/asktala/ops/evaluate.py
+StandardOutput=append:/var/log/asktala/eval.log
+StandardError=append:/var/log/asktala/eval.log

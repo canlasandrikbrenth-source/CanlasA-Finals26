@@ -1,0 +1,49 @@
+# LibreChat v0.8.8 configuration for Ask Tala.
+version: 1.3.17
+cache: true
+
+interface:
+  customWelcome: 'Kumusta! Ask me about offices, enrolment steps, fees and deadlines at Tala Ridge College.'
+  modelSelect: false
+  parameters: false
+  presets: false
+  bookmarks: false
+  multiConvo: false
+  memories: false
+  temporaryChat: false
+  runCode: false
+  webSearch: false
+  fileSearch: false
+  prompts:
+    use: false
+    create: false
+  agents:
+    use: false
+    create: false
+
+registration:
+  socialLogins: []
+
+endpoints:
+  custom:
+    - name: 'Tala'
+      apiKey: '${GATEWAY_TOKEN}'
+      baseURL: 'http://gateway:8080/v1'
+      models:
+        default: ['tala-helpdesk']
+        fetch: false
+      titleConvo: false
+      modelDisplayLabel: 'Ask Tala'
+
+modelSpecs:
+  enforce: true
+  prioritize: true
+  list:
+    - name: 'ask-tala'
+      label: 'Ask Tala'
+      description: 'College helpdesk: offices, enrolment steps, fees and deadlines'
+      default: true
+      preset:
+        endpoint: 'Tala'
+        model: 'tala-helpdesk'
+        greeting: 'Which office or enrolment step can I help you find?'

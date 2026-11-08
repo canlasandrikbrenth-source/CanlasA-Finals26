@@ -1,0 +1,22 @@
+{
+  "agent": { "metrics_collection_interval": 60, "run_as_user": "root" },
+  "metrics": {
+    "namespace": "AskTala/Host",
+    "append_dimensions": { "InstanceId": "${aws:InstanceId}" },
+    "aggregation_dimensions": [["InstanceId"]],
+    "metrics_collected": {
+      "disk": { "resources": ["/"], "measurement": ["used_percent"], "drop_device": true },
+      "mem": { "measurement": ["used_percent"] }
+    }
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          { "file_path": "/var/log/asktala/backup.log", "log_group_name": "/asktala/jobs", "log_stream_name": "backup" },
+          { "file_path": "/var/log/asktala/eval.log", "log_group_name": "/asktala/jobs", "log_stream_name": "eval" }
+        ]
+      }
+    }
+  }
+}

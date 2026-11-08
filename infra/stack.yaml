@@ -1,0 +1,478 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Ask Tala - one EC2 server behind CloudFront, with monitoring, backups and an audit trail.
+
+Parameters:
+  AlarmEmail:
+    Type: String
+    AllowedPattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+  AmiId:
+    Type: AWS::EC2::Image::Id
+    Description: Fixed at first deploy so that later deploys never replace the server.
+  CloudFrontPrefixListId:
+    Type: String
+  InstanceType:
+    Type: String
+    Default: t3.small
+    AllowedValues: [t3.small, t3.medium]
+  BudgetUsd:
+    Type: Number
+    Default: 5
+
+Conditions:
+  IsUsEast1: !Equals [!Ref "AWS::Region", us-east-1]
+
+Resources:
+  # ---------- Network ----------
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.20.0.0/24
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags: [{ Key: Name, Value: asktala }, { Key: Project, Value: SAM10 }]
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags: [{ Key: Project, Value: SAM10 }]
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: { VpcId: !Ref Vpc, InternetGatewayId: !Ref InternetGateway }
+  Subnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.0.0/25
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags: [{ Key: Project, Value: SAM10 }]
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags: [{ Key: Project, Value: SAM10 }]
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachment
+    Properties: { RouteTableId: !Ref RouteTable, DestinationCidrBlock: 0.0.0.0/0, GatewayId: !Ref InternetGateway }
+  SubnetRoute:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { SubnetId: !Ref Subnet, RouteTableId: !Ref RouteTable }
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Only CloudFront may reach the app. No SSH; admin access is through Session Manager.
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 3080, ToPort: 3080, SourcePrefixListId: !Ref CloudFrontPrefixListId }
+      Tags: [{ Key: Project, Value: SAM10 }]
+
+  # ---------- Storage ----------
+  DataBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      VersioningConfiguration: { Status: Enabled }
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - { Id: keep-backups-14-days, Status: Enabled, Prefix: backups/, ExpirationInDays: 14, NoncurrentVersionExpiration: { NoncurrentDays: 7 } }
+          - { Id: tidy-old-versions, Status: Enabled, NoncurrentVersionExpiration: { NoncurrentDays: 30 } }
+      Tags: [{ Key: Project, Value: SAM10 }]
+
+  # ---------- Server ----------
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - { Effect: Allow, Principal: { Service: ec2.amazonaws.com }, Action: sts:AssumeRole }
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Policies:
+        - PolicyName: asktala-least-privilege
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
+                Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/asktala/*
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt DataBucket.Arn
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource:
+                  - !Sub ${DataBucket.Arn}/content/*
+                  - !Sub ${DataBucket.Arn}/release/*
+                  - !Sub ${DataBucket.Arn}/backups/*
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource:
+                  - !Sub ${DataBucket.Arn}/backups/*
+                  - !Sub ${DataBucket.Arn}/evaluations/*
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref AlertTopic
+      Tags: [{ Key: Project, Value: SAM10 }]
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: { Roles: [!Ref InstanceRole] }
+  Instance:
+    Type: AWS::EC2::Instance
+    DependsOn: [DefaultRoute, SubnetRoute]
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref InstanceProfile
+      SubnetId: !Ref Subnet
+      SecurityGroupIds: [!Ref AppSecurityGroup]
+      Monitoring: false
+      MetadataOptions: { HttpTokens: required, HttpPutResponseHopLimit: 2, HttpEndpoint: enabled }
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs: { VolumeSize: 20, VolumeType: gp3, Encrypted: true, DeleteOnTermination: true }
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euo pipefail
+          exec >>/var/log/asktala-boot.log 2>&1
+          cat >/etc/asktala.env <<EOF
+          BUCKET=${DataBucket}
+          AWS_REGION=${AWS::Region}
+          TOPIC_ARN=${AlertTopic}
+          EOF
+          sed -i 's/^ *//' /etc/asktala.env
+          until aws s3 cp --region ${AWS::Region} s3://${DataBucket}/release/app.tar.gz /tmp/app.tar.gz; do sleep 15; done
+          mkdir -p /opt/asktala
+          tar -xzf /tmp/app.tar.gz -C /opt/asktala
+          bash /opt/asktala/ops/install.sh
+      Tags: [{ Key: Name, Value: asktala }, { Key: Project, Value: SAM10 }]
+  ElasticIp:
+    Type: AWS::EC2::EIP
+    DependsOn: GatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags: [{ Key: Project, Value: SAM10 }]
+  ElasticIpAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties: { AllocationId: !GetAtt ElasticIp.AllocationId, InstanceId: !Ref Instance }
+
+  # ---------- HTTPS front door ----------
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    DependsOn: ElasticIpAssociation
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: Ask Tala
+        PriceClass: PriceClass_200
+        Origins:
+          - Id: app
+            DomainName: !Sub
+              - "ec2-${Dashed}.${Suffix}"
+              - Dashed: !Join ["-", !Split [".", !Ref ElasticIp]]
+                Suffix: !If [IsUsEast1, compute-1.amazonaws.com, !Sub "${AWS::Region}.compute.amazonaws.com"]
+            CustomOriginConfig:
+              HTTPPort: 3080
+              OriginProtocolPolicy: http-only
+              OriginReadTimeout: 60
+        DefaultCacheBehavior:
+          TargetOriginId: app
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
+          CachedMethods: [GET, HEAD]
+          Compress: false
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+          OriginRequestPolicyId: 216adef6-5c7f-47e4-b989-5492eafa07d3
+      Tags: [{ Key: Project, Value: SAM10 }]
+
+  # ---------- Audit and cost ----------
+  TrailBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - { Id: expire, Status: Enabled, ExpirationInDays: 60 }
+      Tags: [{ Key: Project, Value: SAM10 }]
+  TrailBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TrailBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: cloudtrail.amazonaws.com }
+            Action: s3:GetBucketAcl
+            Resource: !GetAtt TrailBucket.Arn
+          - Effect: Allow
+            Principal: { Service: cloudtrail.amazonaws.com }
+            Action: s3:PutObject
+            Resource: !Sub ${TrailBucket.Arn}/AWSLogs/${AWS::AccountId}/*
+            Condition:
+              StringEquals: { "s3:x-amz-acl": bucket-owner-full-control }
+  Trail:
+    Type: AWS::CloudTrail::Trail
+    DependsOn: TrailBucketPolicy
+    Properties:
+      IsLogging: true
+      S3BucketName: !Ref TrailBucket
+      IsMultiRegionTrail: false
+      EnableLogFileValidation: true
+      Tags: [{ Key: Project, Value: SAM10 }]
+  Budget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit: { Amount: !Ref BudgetUsd, Unit: USD }
+      NotificationsWithSubscribers:
+        - Notification: { NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 80, ThresholdType: PERCENTAGE }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref AlarmEmail }]
+        - Notification: { NotificationType: FORECASTED, ComparisonOperator: GREATER_THAN, Threshold: 100, ThresholdType: PERCENTAGE }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref AlarmEmail }]
+
+  # ---------- Logs and metrics ----------
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Tags: [{ Key: Project, Value: SAM10 }]
+  AlertSubscription:
+    Type: AWS::SNS::Subscription
+    Properties: { TopicArn: !Ref AlertTopic, Protocol: email, Endpoint: !Ref AlarmEmail }
+  GatewayLogs:
+    Type: AWS::Logs::LogGroup
+    Properties: { LogGroupName: /asktala/gateway, RetentionInDays: 14 }
+  AppLogs:
+    Type: AWS::Logs::LogGroup
+    Properties: { LogGroupName: /asktala/librechat, RetentionInDays: 14 }
+  DatabaseLogs:
+    Type: AWS::Logs::LogGroup
+    Properties: { LogGroupName: /asktala/mongodb, RetentionInDays: 14 }
+  JobLogs:
+    Type: AWS::Logs::LogGroup
+    Properties: { LogGroupName: /asktala/jobs, RetentionInDays: 14 }
+  RequestsFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref GatewayLogs
+      FilterPattern: '{ $.event = "request" }'
+      MetricTransformations: [{ MetricNamespace: AskTala, MetricName: Requests, MetricValue: "1", DefaultValue: 0 }]
+  FailedFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref GatewayLogs
+      FilterPattern: '{ $.event = "request" && $.status = "error" }'
+      MetricTransformations: [{ MetricNamespace: AskTala, MetricName: AnswersFailed, MetricValue: "1", DefaultValue: 0 }]
+  EmptyFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref GatewayLogs
+      FilterPattern: '{ $.event = "request" && $.status = "empty" }'
+      MetricTransformations: [{ MetricNamespace: AskTala, MetricName: EmptyAnswer, MetricValue: "1", DefaultValue: 0 }]
+  DurationFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref GatewayLogs
+      FilterPattern: '{ $.event = "request" && $.status = "ok" }'
+      MetricTransformations: [{ MetricNamespace: AskTala, MetricName: ResponseTime, MetricValue: "$.duration_ms", Unit: Milliseconds }]
+
+  # ---------- Alarms ----------
+  CpuAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: asktala-cpu-high
+      AlarmDescription: CPU above 85% for 10 minutes. Check for a stuck process.
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Dimensions: [{ Name: InstanceId, Value: !Ref Instance }]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 85
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: missing
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+  StatusAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: asktala-status-check-failed
+      AlarmDescription: The instance failed an EC2 status check.
+      Namespace: AWS/EC2
+      MetricName: StatusCheckFailed
+      Dimensions: [{ Name: InstanceId, Value: !Ref Instance }]
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: breaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+  DiskAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: asktala-disk-above-85
+      AlarmDescription: Root disk above 85%. Clean up or grow the disk.
+      Namespace: AskTala/Host
+      MetricName: disk_used_percent
+      Dimensions: [{ Name: InstanceId, Value: !Ref Instance }]
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 85
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: missing
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+  MemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: asktala-memory-above-90
+      AlarmDescription: Memory above 90% for 5 minutes. A process may soon be killed.
+      Namespace: AskTala/Host
+      MetricName: mem_used_percent
+      Dimensions: [{ Name: InstanceId, Value: !Ref Instance }]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 90
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: missing
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+  FailureRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: asktala-answers-failed-above-5pct
+      AlarmDescription: More than 5% of requests failed over 15 minutes. The system is up but not working.
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+      Metrics:
+        - Id: failed
+          ReturnData: false
+          MetricStat:
+            Metric: { Namespace: AskTala, MetricName: AnswersFailed }
+            Period: 900
+            Stat: Sum
+        - Id: total
+          ReturnData: false
+          MetricStat:
+            Metric: { Namespace: AskTala, MetricName: Requests }
+            Period: 900
+            Stat: Sum
+        - Id: rate
+          Expression: IF(total > 0, 100 * failed / total, 0)
+          Label: Failed percent
+          ReturnData: true
+  EmptyAnswerAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: asktala-empty-answer
+      AlarmDescription: An empty answer in 30 minutes. Knowledge content may be missing or unreadable.
+      Namespace: AskTala
+      MetricName: EmptyAnswer
+      Statistic: Sum
+      Period: 1800
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+  ResponseTimeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: asktala-response-time-above-10s
+      AlarmDescription: Average full-answer time above 10 seconds for 5 minutes.
+      Namespace: AskTala
+      MetricName: ResponseTime
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 10000
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+  BackupAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: asktala-backup-missed
+      AlarmDescription: No successful hourly backup in the last two hours.
+      Namespace: AskTala
+      MetricName: BackupSuccess
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 2
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+  PassRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: asktala-test-pass-rate-below-70
+      AlarmDescription: The scheduled test questions scored below 70%.
+      Namespace: AskTala
+      MetricName: TestPassRate
+      Statistic: Minimum
+      Period: 10800
+      EvaluationPeriods: 1
+      Threshold: 70
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+
+  Dashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: AskTala
+      DashboardBody: !Sub |
+        {"widgets":[
+        {"type":"metric","x":0,"y":0,"width":8,"height":6,"properties":{"title":"Requests (volume)","region":"${AWS::Region}","stat":"Sum","period":300,"view":"timeSeries","metrics":[["AskTala","Requests"]]}},
+        {"type":"metric","x":8,"y":0,"width":8,"height":6,"properties":{"title":"Errors and empty answers","region":"${AWS::Region}","stat":"Sum","period":300,"view":"timeSeries","metrics":[["AskTala","AnswersFailed"],["AskTala","EmptyAnswer"]]}},
+        {"type":"metric","x":16,"y":0,"width":8,"height":6,"properties":{"title":"Response time (ms)","region":"${AWS::Region}","stat":"Average","period":300,"view":"timeSeries","metrics":[["AskTala","ResponseTime"]]}},
+        {"type":"metric","x":0,"y":6,"width":8,"height":6,"properties":{"title":"CPU %","region":"${AWS::Region}","stat":"Average","period":300,"view":"timeSeries","metrics":[["AWS/EC2","CPUUtilization","InstanceId","${Instance}"]]}},
+        {"type":"metric","x":8,"y":6,"width":8,"height":6,"properties":{"title":"Disk used %","region":"${AWS::Region}","stat":"Maximum","period":60,"view":"timeSeries","yAxis":{"left":{"min":0,"max":100}},"metrics":[["AskTala/Host","disk_used_percent","InstanceId","${Instance}"]]}},
+        {"type":"metric","x":16,"y":6,"width":8,"height":6,"properties":{"title":"Memory used %","region":"${AWS::Region}","stat":"Average","period":300,"view":"timeSeries","yAxis":{"left":{"min":0,"max":100}},"metrics":[["AskTala/Host","mem_used_percent","InstanceId","${Instance}"]]}},
+        {"type":"metric","x":0,"y":12,"width":12,"height":6,"properties":{"title":"Scheduled test pass rate %","region":"${AWS::Region}","stat":"Minimum","period":10800,"view":"timeSeries","yAxis":{"left":{"min":0,"max":100}},"metrics":[["AskTala","TestPassRate"]]}},
+        {"type":"metric","x":12,"y":12,"width":12,"height":6,"properties":{"title":"Successful backups per hour","region":"${AWS::Region}","stat":"Sum","period":3600,"view":"timeSeries","metrics":[["AskTala","BackupSuccess"]]}}
+        ]}
+
+Outputs:
+  Url:
+    Value: !Sub https://${Distribution.DomainName}
+  DomainName:
+    Value: !GetAtt Distribution.DomainName
+  Bucket:
+    Value: !Ref DataBucket
+  TrailBucket:
+    Value: !Ref TrailBucket
+  InstanceId:
+    Value: !Ref Instance
+  TopicArn:
+    Value: !Ref AlertTopic

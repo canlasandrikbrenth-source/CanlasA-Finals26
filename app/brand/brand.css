@@ -1,0 +1,45 @@
+/* Ask Tala colour scheme: deep navy with a star-amber accent. */
+html, html.light, :root {
+  --brand-purple: 20 48 79;
+  --surface-submit: #14304f;
+  --surface-submit-hover: #1f4a78;
+  --surface-primary: #fbf8f1;
+  --surface-primary-alt: #f4eee0;
+  --surface-primary-contrast: #ece4d2;
+  --surface-secondary: #f4eee0;
+  --surface-secondary-alt: #ece4d2;
+  --surface-tertiary: #e7dcc4;
+  --surface-chat: #fbf8f1;
+  --surface-active: #ece4d2;
+  --surface-active-alt: #e7dcc4;
+  --surface-hover: #ece4d2;
+  --presentation: #fbf8f1;
+  --header-primary: #fbf8f1;
+  --text-primary: #14304f;
+  --text-secondary: #3b5572;
+  --border-light: #e2d7bf;
+  --border-medium: #d3c5a7;
+  --border-medium-alt: #d3c5a7;
+}
+html.dark {
+  --brand-purple: 242 179 61;
+  --surface-submit: #f2b33d;
+  --surface-submit-hover: #d99c2a;
+  --surface-primary: #0e2238;
+  --surface-primary-alt: #122a44;
+  --surface-primary-contrast: #16324f;
+  --surface-secondary: #122a44;
+  --surface-secondary-alt: #16324f;
+  --surface-tertiary: #1b3b5c;
+  --surface-chat: #0e2238;
+  --surface-active: #1b3b5c;
+  --surface-active-alt: #16324f;
+  --surface-hover: #1b3b5c;
+  --presentation: #0e2238;
+  --header-primary: #0e2238;
+  --text-primary: #f5efe1;
+  --text-secondary: #c4cedb;
+  --border-light: #1f4063;
+  --border-medium: #2a5078;
+  --border-medium-alt: #2a5078;
+}
