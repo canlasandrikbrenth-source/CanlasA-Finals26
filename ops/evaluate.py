@@ -61,7 +61,7 @@ def main():
     passed = sum(r["passed"] for r in results)
     rate = round(100 * passed / len(results), 1)
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    trigger = "systemd-timer" if os.environ.get("INVOCATION_ID") else "manual"
+    trigger = os.environ.get("ASKTALA_TRIGGER", "manual")
     misses = [r["id"] for r in results if not r["passed"]]
     print(f"{stamp} eval trigger={trigger} passed={passed}/{len(results)} rate={rate} misses={','.join(misses) or 'none'}", flush=True)
 

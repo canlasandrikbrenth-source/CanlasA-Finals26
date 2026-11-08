@@ -1,6 +1,7 @@
 [Unit]
 Description=Ask Tala database backup to S3
 [Service]
+Environment=ASKTALA_TRIGGER=systemd-timer
 Type=oneshot
 ExecStart=/opt/asktala/ops/backup.sh
 StandardOutput=append:/var/log/asktala/backup.log

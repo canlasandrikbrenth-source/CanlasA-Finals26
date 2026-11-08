@@ -3,8 +3,7 @@
 set -euo pipefail
 # shellcheck disable=SC1091
 source /etc/asktala.env
-trigger=manual
-[ -n "${INVOCATION_ID:-}" ] && trigger=systemd-timer
+trigger="${ASKTALA_TRIGGER:-manual}"
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 key="backups/mongo/asktala-$stamp.archive.gz"
 say() { echo "$(date -u +%FT%TZ) backup trigger=$trigger $*"; }

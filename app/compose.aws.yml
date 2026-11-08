@@ -18,6 +18,7 @@ services:
   gateway:
     environment:
       - AWS_REGION=${AWS_REGION}
+      - AWS_DEFAULT_REGION=${AWS_REGION}
       - KB_BUCKET=${BUCKET}
       - KB_PREFIX=content/
       - MODEL_KEY_PARAM=/asktala/model/api_key
