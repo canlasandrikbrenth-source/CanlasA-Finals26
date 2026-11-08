@@ -11,7 +11,7 @@ All content is invented. The assistant gives information only and makes no decis
 | Source | https://github.com/danny-avila/LibreChat |
 | Author | Danny Avila and LibreChat contributors |
 | Licence | MIT, https://github.com/danny-avila/LibreChat/blob/main/LICENSE |
-| Model | Groq free tier, `llama-3.3-70b-versatile` by default |
+| Model | Groq free tier, `openai/gpt-oss-120b` by default |
 
 ## Layout
 

@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 STACK=asktala
 : "${AWS_REGION:?Open CloudShell in the region you want to use}"
 MODEL_BASE_URL="${MODEL_BASE_URL:-https://api.groq.com/openai/v1}"
-MODEL_NAME="${MODEL_NAME:-llama-3.3-70b-versatile}"
+MODEL_NAME="${MODEL_NAME:-openai/gpt-oss-120b}"
 
 python3 scripts/precheck.py
 
