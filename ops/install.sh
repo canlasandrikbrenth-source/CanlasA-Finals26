@@ -6,7 +6,7 @@ COMPOSE_VERSION=v5.7.0
 BUILDX_VERSION=v0.38.1
 
 dnf install -y docker jq amazon-cloudwatch-agent
-plugins=/usr/libexec/docker/cli-plugins
+plugins=/usr/local/lib/docker/cli-plugins
 mkdir -p "$plugins"
 if [ ! -x "$plugins/docker-compose" ]; then
   curl -fsSL -o "$plugins/docker-compose" \
@@ -35,6 +35,6 @@ cp "$ROOT"/ops/systemd/* /etc/systemd/system/
 systemctl daemon-reload
 /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s \
   -c "file:$ROOT/ops/cloudwatch-agent.json"
+systemctl enable --now asktala-backup.timer asktala-eval.timer
 systemctl enable asktala.service
 systemctl restart asktala.service
-systemctl enable --now asktala-backup.timer asktala-eval.timer
