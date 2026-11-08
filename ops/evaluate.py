@@ -2,6 +2,8 @@
 """Runs the labelled test questions, records a pass rate and emails the result."""
 import json
 import os
+import re
+import unicodedata
 import subprocess
 import time
 import urllib.request
@@ -34,7 +36,8 @@ def ask(question, token):
 
 
 def normalise(text):
-    return text.lower().replace("’", "'")
+    text = unicodedata.normalize("NFKC", text).lower().replace("\u2019", "'")
+    return re.sub("[\u2010-\u2015]", "-", text)
 
 
 def score(item, answer):
