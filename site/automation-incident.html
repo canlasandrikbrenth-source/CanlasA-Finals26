@@ -1,1 +1,80 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Automation and the incident | Ask Tala</title><link rel="stylesheet" href="style.css"></head><body><header><strong>Ask Tala</strong><nav><a href="index.html">Executive summary</a><a href="infrastructure.html">AWS infrastructure design</a><a href="system.html">Your system and system card</a><a href="baseline.html">Your baseline</a><a href="well-architected.html">Well-Architected review</a><a href="operations.html">Monitoring, backup and security</a><a href="automation-incident.html">Automation and the incident</a><a href="results.html">Results</a><a href="next.html">What I would do next</a></nav></header><main><h1>Automation and the incident</h1><section><h2>Two automations</h2><p class="todo">TO WRITE: What they do and the timestamps of at least two unattended runs each.</p><figure class="slot"><div>Add your real screenshot or output for E-14</div><figcaption>E-14: write a caption saying what this shows and when it was taken.</figcaption></figure></section><section><h2>The fault</h2><p class="todo">TO WRITE: Timeline with started, noticed and fixed times; root cause; prevention and proof that it worked. Say that you caused the fault deliberately.</p><figure class="slot"><div>Add your real screenshot or output for E-15</div><figcaption>E-15: write a caption saying what this shows and when it was taken.</figcaption></figure></section><section><h2>Runbook</h2><p class="todo">TO WRITE: Complete the Appendix D template, including when you last tested it.</p></section></main></body></html>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automation and the incident | Ask Tala</title><link rel="stylesheet" href="style.css"></head>
+<body><header><div class="brand">Ask Tala <span>SAM10 Final Project</span></div><nav><a href="index.html">Summary</a><a href="infrastructure.html">Infrastructure</a><a href="system.html">System card</a><a href="baseline.html">Baseline</a><a href="well-architected.html">Well-Architected</a><a href="operations.html">Operations</a><a href="automation-incident.html" aria-current=page>Automation and incident</a><a href="results.html">Results</a><a href="next.html">Next steps</a></nav></header>
+<main><h1>Automation and the incident</h1>
+<h2>Two automations</h2>
+<div class="scroll"><table><thead><tr><th>Job</th><th>Schedule</th><th>What it does</th></tr></thead><tbody><tr><td>Database backup</td><td>Every hour, by a systemd timer</td><td>Dumps MongoDB to S3 and publishes a success metric that an alarm watches.</td></tr><tr><td>Test questions</td><td>Every 3 hours, by a systemd timer</td><td>Asks 12 labelled questions, stores the result in S3, publishes a pass rate and emails it to me.</td></tr></tbody></table></div>
+<p><strong>E-14.</strong> Timer runs from CloudWatch, checked 6:30 PM Manila on 10 November 2026 (times in UTC). Runs started by hand are labelled <code>manual</code> and are not counted.</p>
+<pre>backup  46 runs  trigger=systemd-timer  status=ok, none failed
+        first 2026-11-08T13:00:19Z   last 2026-11-10T10:00:06Z
+
+eval    15 runs  trigger=systemd-timer
+        2026-11-08T15:20  12/12      2026-11-09T12:20  12/12
+        2026-11-08T18:20  11/12 *    2026-11-09T15:20  12/12
+        2026-11-08T21:20  12/12      2026-11-09T18:20  12/12
+        2026-11-09T00:20  12/12      2026-11-09T21:20  12/12
+        2026-11-09T03:20  12/12      2026-11-10T00:20  12/12
+        2026-11-09T06:20  12/12      2026-11-10T03:20  12/12
+        2026-11-09T09:20  12/12      2026-11-10T06:20  12/12
+                                     2026-11-10T09:20  12/12
+* q12 returned &quot;ERROR: HTTPError&quot;: the model request failed.</pre>
+<p>Both jobs ran many times without anyone starting them, well beyond the two runs the brief asks for. All alarms were OK when checked at 6:30 PM Manila on 10 November.</p>
+<p>The code for both is in the repository under <code>ops/</code>, and the README explains how to deploy it.</p>
+<h2>Real deployment problems</h2>
+<p>Before the planned fault, five real problems appeared while deploying, each fixed and committed:</p>
+<ol>
+<li>The server's older Docker build tool stopped the first start.</li>
+<li>The gateway did not know its AWS region, so all test answers failed.</li>
+<li>The chosen model was not available to my Groq key.</li>
+<li>Manual test runs were incorrectly labelled as scheduled, which would have made evidence misleading. That label was fixed, and the mislabelled run at 12:31:30 UTC is not counted.</li>
+<li>The theme colours were in the wrong format.</li>
+</ol>
+<h2>The fault: a full disk</h2>
+<p>I caused this fault on purpose, as the brief allows. Ask Tala is not used by real people.</p>
+<div class="scroll"><table><thead><tr><th>Manila time, 8 Nov 2026</th><th>Event</th></tr></thead><tbody><tr><td>10:36:32 PM</td><td>Fault started: a script writes a runaway log. Disk at 45%.</td></tr><tr><td>10:40:41 PM</td><td>Last successful answer recorded by the gateway.</td></tr><tr><td>10:40:43 PM</td><td>MongoDB logs a fatal segmentation fault.</td></tr><tr><td>10:41:18 PM</td><td>The web app logs ENOSPC (no space left) and cannot find the database.</td></tr><tr><td>10:42:02 PM</td><td><strong>Alarm fires</strong> and the email arrives. Time to detect: 5 min 30 s.</td></tr><tr><td>10:44 PM</td><td>I see Ask Tala failing.</td></tr><tr><td>about 10:48 PM</td><td>Disk cleared; alarm returns to OK at 10:48:02. The app still fails.</td></tr><tr><td>10:51:10 PM</td><td><strong>Database and app restarted, health check passes.</strong> Time to fix: 9 min 8 s from the alarm.</td></tr><tr><td>10:52:08 PM</td><td>Log rotation installed.</td></tr></tbody></table></div>
+<figure><a href="evidence/e15-disk-investigation.png"><img src="evidence/e15-disk-investigation.png" loading="lazy" alt="Investigation with df, du and ls: the disk is at 100% and one 12 GB log is responsible."></a><figcaption><strong>E-15.</strong> Investigation with df, du and ls: the disk is at 100% and one 12 GB log is responsible.</figcaption></figure>
+<figure><a href="evidence/e15-chat-failure.png"><img src="evidence/e15-chat-failure.png" loading="lazy" alt="What a user saw while the database was down."></a><figcaption><strong>E-15.</strong> What a user saw while the database was down.</figcaption></figure>
+<p><strong>Log excerpts</strong> from CloudWatch, 8 November 2026 (UTC):</p>
+<pre>/asktala/mongodb    14:40:43  &quot;s&quot;:&quot;F&quot;, &quot;c&quot;:&quot;CONTROL&quot;, &quot;msg&quot;:&quot;Writing fatal message&quot;, &quot;attr&quot;:{&quot;message&quot;:&quot;Got signal: 11 (Segmentation fault).&quot;}
+/asktala/librechat  14:41:17  error: ErrorController =&gt; error getaddrinfo ENOTFOUND mongodb
+/asktala/librechat  14:41:18  error: There was an uncaught error: ENOSPC: no space left on device, write</pre>
+<h3>Root cause</h3>
+<p>A runaway log with no size limit grew to 12 GB and filled the disk. MongoDB crashed at 10:40:43 PM, within seconds of the disk becoming full, which points to the full disk as the cause, though the log line itself does not state it. With the database down, every chat failed.</p>
+<p>Clearing the disk was not enough, because MongoDB stayed stopped. <code>docker ps</code> misleadingly still showed it as "Up 2 hours", while <code>docker inspect</code> showed <code>running=false</code>. The fix was to clear the disk, then restart the database and the app.</p>
+<h3>Prevention and proof</h3>
+<p>I added log rotation with a 200 MB limit, checked every minute. I then ran the same runaway log with the rotation in place.</p>
+<figure><a href="evidence/e15-prevention-run-command.png"><img src="evidence/e15-prevention-run-command.png" loading="lazy" alt="The first prevention test in Run Command, 14:56 to 14:59 UTC. The readings continue in the text below."></a><figcaption><strong>E-15.</strong> The first prevention test in Run Command, 14:56 to 14:59 UTC. The readings continue in the text below.</figcaption></figure>
+<pre>14:56:22 45% 3.6M   14:56:40 50% 1011M  14:56:58 55% 2.0G
+14:57:16 70% 5.0G   14:57:34 75% 6.0G   14:57:52 85% 8.0G
+14:58:10 62% 3.5G   14:58:28 70% 5.0G   14:58:46 57% 2.5G
+14:59:04 75% 6.0G   14:59:22 85% 8.0G</pre>
+<p><strong>Longer test, 17:06:26 to 17:14:28 UTC on 8 November 2026 (1:06 to 1:14 AM Manila, 9 November).</strong> The 3-minute test above was not conclusive by itself, so I ran the same runaway log for 8 minutes, sampling every 12 seconds with a safety stop at 92%. The safety stop never triggered. Disk use stayed between 45% and 85% by rounded readings, no new disk alarm fired, and MongoDB stayed running.</p>
+<pre>17:06:26 45% 1.6M     17:07:51 85% 8.0G     17:08:03 61% 3.3G
+17:09:15 85% 8.0G     17:09:27 59% 2.9G     17:10:39 85% 8.1G
+17:10:51 59% 2.9G     17:11:51 75% 6.1G     17:12:03 58% 2.6G
+17:13:03 75% 6.1G     17:13:15 58% 2.6G     17:14:28 50% 1.1G
+max=85  end=2026-11-08T17:14:28Z  running=true</pre>
+<p>The first time, with no rotation, the same log filled the disk in about 4 minutes and stopped the database. This time it ran for 8 minutes and did not.</p>
+<p>Rotation limits a runaway log at this speed, but a much faster one could still beat a one-minute check, and it does not restart a crashed database. I list both as remaining risks.</p>
+<h2>Runbook: disk full</h2>
+<p>Owner: Andrik Brenth E. Canlas · Last tested: 8 November 2026 · Takes: about 10 minutes · Ask: Andrik</p>
+<ol>
+<li><strong>What this is for.</strong> Recovering Ask Tala when the server disk fills up.</li>
+<li><strong>How you know you need it.</strong> The <code>asktala-disk-above-85</code> alarm email, or chats failing with "Tala could not complete this request". Check with <code>df -h /</code>.</li>
+<li><strong>What it affects.</strong> Everyone: chats fail until the database is running again.</li>
+<li><strong>How to do it.</strong> Open Session Manager to the <code>asktala</code> instance and run <code>sudo -i</code>.
+<ul>
+<li>Find what is large: <code>du -sh /var/log/* | sort -h | tail -4</code>, and identify the file responsible.</li>
+<li>For the exercise's log: <code>/opt/asktala/ops/fault-disk.sh clean</code>. You should see the disk near 45%.</li>
+<li>Check the database: <code>docker inspect -f '{{.State.Running}}' asktala-mongo</code>. If <code>false</code>, run <code>docker restart asktala-mongo</code>, wait 15 seconds, then <code>docker restart asktala-app</code>.</li>
+<li>Confirm: <code>curl -s -o /dev/null -w '%{http_code}' localhost:3080/health</code> should print <code>200</code>.</li>
+</ul></li>
+<li><strong>How to check it worked.</strong>
+<ul><li>[ ] The disk is below 85%.</li><li>[ ] "Where is the Registrar's office?" gets Molave Hall, Room 101.</li><li>[ ] No new alarms for 10 minutes.</li></ul></li>
+<li><strong>How to undo it.</strong> Deleted logs cannot be restored. If the database is damaged, use <code>/opt/asktala/ops/restore.sh</code>.</li>
+<li><strong>Gotchas.</strong> A full disk blocks Run Command, so keep a Session Manager window open during any fault test. <code>docker ps</code> can show a stopped container as "Up". <code>docker logs</code> can fail on a full disk, so use CloudWatch.</li>
+<li><strong>Change history.</strong> 8 November 2026: created after the fault test; log rotation added.</li>
+</ol>
+</main>
+<footer>Andrik Brenth E. Canlas · SAM10 Systems Administration and Maintenance · Tala Ridge College is fictional and all system data is invented.</footer></body></html>

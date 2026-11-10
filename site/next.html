@@ -1,1 +1,15 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>What I would do next | Ask Tala</title><link rel="stylesheet" href="style.css"></head><body><header><strong>Ask Tala</strong><nav><a href="index.html">Executive summary</a><a href="infrastructure.html">AWS infrastructure design</a><a href="system.html">Your system and system card</a><a href="baseline.html">Your baseline</a><a href="well-architected.html">Well-Architected review</a><a href="operations.html">Monitoring, backup and security</a><a href="automation-incident.html">Automation and the incident</a><a href="results.html">Results</a><a href="next.html">What I would do next</a></nav></header><main><h1>What I would do next</h1><section><h2>Priorities</h2><p class="todo">TO WRITE: Three to five realistic ideas in priority order.</p></section></main></body></html>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What I would do next | Ask Tala</title><link rel="stylesheet" href="style.css"></head>
+<body><header><div class="brand">Ask Tala <span>SAM10 Final Project</span></div><nav><a href="index.html">Summary</a><a href="infrastructure.html">Infrastructure</a><a href="system.html">System card</a><a href="baseline.html">Baseline</a><a href="well-architected.html">Well-Architected</a><a href="operations.html">Operations</a><a href="automation-incident.html">Automation and incident</a><a href="results.html">Results</a><a href="next.html" aria-current=page>Next steps</a></nav></header>
+<main><h1>What I would do next</h1>
+<p>In priority order:</p>
+<ol>
+<li><strong>Add a health check from outside the server.</strong> A scheduled test of the public address would catch failures that never reach the gateway, which is the weakness the incident exposed.</li>
+<li><strong>Restart the database automatically after a crash, and add a health check to its container.</strong> It stayed down after the disk was cleared.</li>
+<li><strong>Stop the root cause properly.</strong> Keep logs on their own small volume, so a runaway log cannot affect the database.</li>
+<li><strong>Encrypt the link from CloudFront to the server.</strong> That traffic is plain HTTP today.</li>
+<li><strong>Improve quality measurement.</strong> Grow the test set beyond 12 questions and stop relying on keyword matching, including cases like the late-enrolment answer that was confidently incomplete.</li>
+</ol>
+</main>
+<footer>Andrik Brenth E. Canlas · SAM10 Systems Administration and Maintenance · Tala Ridge College is fictional and all system data is invented.</footer></body></html>

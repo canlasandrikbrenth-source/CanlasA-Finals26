@@ -46,10 +46,15 @@ Both log `trigger=systemd-timer` when run by the schedule and `trigger=manual` w
 
 ## Contribution log
 
+Working alone: Andrik Brenth E. Canlas (11-0251-543).
+
 | Date | Who | What |
 |---|---|---|
-| | | |
+| 8 Nov 2026 | Andrik, with Claude | Chose the fictional college domain; deployed the kit to AWS |
+| 8 Nov 2026 | Andrik, with Claude | Fixed deployment problems; tested chats, backup and restore |
+| 8 Nov 2026 | Andrik, with Claude | Ran the disk-full fault, recovered, added log rotation |
+| 8-9 Nov 2026 | Andrik, with Claude | Captured evidence; published the project website |
 
 ## AI assistance
 
-Declare here and in the website declaration: which tool, what for, and how you checked its output.
+I used Claude (Anthropic) to help draft the code, content and website text, and I checked its output against the running system.

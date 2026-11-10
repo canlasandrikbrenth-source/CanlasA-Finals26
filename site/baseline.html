@@ -1,1 +1,26 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Your baseline | Ask Tala</title><link rel="stylesheet" href="style.css"></head><body><header><strong>Ask Tala</strong><nav><a href="index.html">Executive summary</a><a href="infrastructure.html">AWS infrastructure design</a><a href="system.html">Your system and system card</a><a href="baseline.html">Your baseline</a><a href="well-architected.html">Well-Architected review</a><a href="operations.html">Monitoring, backup and security</a><a href="automation-incident.html">Automation and the incident</a><a href="results.html">Results</a><a href="next.html">What I would do next</a></nav></header><main><h1>Your baseline</h1><section><h2>Before you touched it</h2><p class="todo">TO WRITE: Describe the environment as it was at the start, with dates.</p></section></main></body></html>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your baseline | Ask Tala</title><link rel="stylesheet" href="style.css"></head>
+<body><header><div class="brand">Ask Tala <span>SAM10 Final Project</span></div><nav><a href="index.html">Summary</a><a href="infrastructure.html">Infrastructure</a><a href="system.html">System card</a><a href="baseline.html" aria-current=page>Baseline</a><a href="well-architected.html">Well-Architected</a><a href="operations.html">Operations</a><a href="automation-incident.html">Automation and incident</a><a href="results.html">Results</a><a href="next.html">Next steps</a></nav></header>
+<main><h1>Your baseline</h1>
+<p>The baseline is the state before I touched anything, recorded on 8 November 2026. Because this project started from nothing, the baseline has two parts: an empty AWS account, and LibreChat's default deployment.</p>
+<h2>AWS account, 8 November 2026, about 7:42 PM Manila</h2>
+<ul>
+<li>A CloudShell check showed no project stack and no project parameters.</li>
+<li>No application, dashboard, alarms or backups for this project existed.</li>
+</ul>
+<h2>LibreChat's default deployment</h2>
+<p>From the project's <code>deploy-compose.yml</code>, a default deployment has:</p>
+<ul>
+<li>LibreChat's own name and branding, and a general-purpose interface;</li>
+<li>a database started with authentication off, which depends on the network to stay private;</li>
+<li>no dashboards, alarms, scheduled backups or restore procedure;</li>
+<li>secrets kept in a local <code>.env</code> file.</li>
+</ul>
+<p>I did not run the default deployment on my laptop, so this describes its published configuration, not a measurement of one running.</p>
+<h2>Starting numbers</h2>
+<table><tbody>
+<tr><td>Alarms</td><td>0</td></tr><tr><td>Backups</td><td>0</td></tr><tr><td>Restores tested</td><td>0</td></tr><tr><td>Secrets in Parameter Store</td><td>0</td></tr><tr><td>Automated jobs</td><td>0</td></tr>
+</tbody></table>
+</main>
+<footer>Andrik Brenth E. Canlas · SAM10 Systems Administration and Maintenance · Tala Ridge College is fictional and all system data is invented.</footer></body></html>

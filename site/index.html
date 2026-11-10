@@ -1,1 +1,37 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Executive summary | Ask Tala</title><link rel="stylesheet" href="style.css"></head><body><header><strong>Ask Tala</strong><nav><a href="index.html">Executive summary</a><a href="infrastructure.html">AWS infrastructure design</a><a href="system.html">Your system and system card</a><a href="baseline.html">Your baseline</a><a href="well-architected.html">Well-Architected review</a><a href="operations.html">Monitoring, backup and security</a><a href="automation-incident.html">Automation and the incident</a><a href="results.html">Results</a><a href="next.html">What I would do next</a></nav></header><main><h1>Executive summary</h1><section><h2>Summary</h2><p class="todo">TO WRITE: Plain English, for someone who knows nothing about AWS: what the system does, what was wrong with how it was run, what you changed, what improved.</p></section><section><h2>Presentation</h2><p class="todo">TO WRITE: Embed your YouTube or Vimeo video here (5 to 8 minutes).</p></section><section><h2>Declaration</h2><p class="todo">TO WRITE: Copy Appendix H here, with your names, and add your two-sentence AI declaration.</p></section></main></body></html>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Executive summary | Ask Tala</title><link rel="stylesheet" href="style.css"></head>
+<body><header><div class="brand">Ask Tala <span>SAM10 Final Project</span></div><nav><a href="index.html" aria-current=page>Summary</a><a href="infrastructure.html">Infrastructure</a><a href="system.html">System card</a><a href="baseline.html">Baseline</a><a href="well-architected.html">Well-Architected</a><a href="operations.html">Operations</a><a href="automation-incident.html">Automation and incident</a><a href="results.html">Results</a><a href="next.html">Next steps</a></nav></header>
+<main><h1>Executive summary</h1>
+<p class="lead">Ask Tala is an information helpdesk for Tala Ridge College, a college I invented for this project. Students ask it about offices, enrolment steps, fees and deadlines, and it answers only from three short invented documents.</p>
+<div class="scroll"><table><thead><tr><th>Project detail</th><th></th></tr></thead><tbody><tr><td>Student</td><td>Andrik Brenth E. Canlas (11-0251-543), working alone</td></tr><tr><td>Instructor</td><td>Romack Natividad</td></tr><tr><td>Base system</td><td>LibreChat v0.8.8, MIT licence, reskinned</td></tr><tr><td>Live system</td><td><a href="https://d287m6a2imw4k1.cloudfront.net">d287m6a2imw4k1.cloudfront.net</a> (login required)</td></tr><tr><td>AWS region</td><td>Asia Pacific (Sydney), ap-southeast-2</td></tr></tbody></table></div>
+<h2>What was wrong, and what changed</h2>
+<p>An AI chat application is easy to start and easy to neglect. Out of the box, nothing would tell you it had stopped working, nothing would save your data, and nothing would stop a full disk from taking it down. This project treats that as the actual problem.</p>
+<ul>
+<li><strong>It now tells me when it is unhealthy.</strong> Nine alarms email me. When I deliberately filled the disk, the alarm arrived 5 minutes 30 seconds after the fault began, about two minutes before I noticed the app failing.</li>
+<li><strong>Its data can be recovered.</strong> The database is backed up to storage every hour. I deleted a real chat, restored from backup in 23 seconds, and the chat came back.</li>
+<li><strong>Its secrets are not in the code.</strong> Keys live in AWS Parameter Store, and the database cannot be reached from the internet.</li>
+<li><strong>Routine checks run without me.</strong> The backup and a 12-question test run on schedules. Across 15 scheduled test runs over two days, 14 scored 12 out of 12.</li>
+<li><strong>The system is honest about its limits.</strong> It refuses questions outside its documents and will not decide anything about a person.</li>
+</ul>
+<h2>What is not finished</h2>
+<p>I did not complete a run on my laptop, because Docker Desktop needed a Windows component I chose not to install. My account also appears to block console passwords for IAM users, so the separate IAM user cannot log in. Both are explained on the pages that cover them. The system runs on one server, and the timings below come from a single day of operation.</p>
+<h2>Presentation</h2>
+<p class="todo"><strong>Still to add:</strong> embed the 5 to 8 minute video recording here.</p>
+<h2 id="declaration">Declaration</h2>
+<p>I confirm that the work submitted for SAM10 Systems Administration and Maintenance, Final Project is my own, except where clearly identified as borrowed, based on an existing open project, or as AI-assisted. I confirm that:</p>
+<ul>
+<li>the base system I built on is identified and credited, and I have complied with its licence;</li>
+<li>the system described on this website and in my repository exists and can be demonstrated;</li>
+<li>all data and content used in the system is invented, and contains no real patient, student or staff information;</li>
+<li>my AI system does not make consequential decisions about identifiable people;</li>
+<li>all evidence submitted is authentic and has not been altered to misrepresent results;</li>
+<li>no AWS credentials, API keys or passwords are included in this submission, including in the history of my repository; and</li>
+<li>I have read and accept the academic integrity and ethics requirements of this course.</li>
+</ul>
+<p><strong>AI use.</strong> I used Claude (Anthropic) to help draft the code, content and website text, and I checked its output against the running system.</p>
+<p>Student name: Andrik Brenth E. Canlas &nbsp;·&nbsp; Student ID: 11-0251-543</p>
+<p class="todo"><strong>Still to add:</strong> your signature and the date.</p>
+<p>Signature: ______________________ &nbsp;·&nbsp; Date: ______________</p>
+</main>
+<footer>Andrik Brenth E. Canlas · SAM10 Systems Administration and Maintenance · Tala Ridge College is fictional and all system data is invented.</footer></body></html>

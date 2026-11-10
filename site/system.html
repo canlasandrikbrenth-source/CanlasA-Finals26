@@ -1,1 +1,54 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Your system and system card | Ask Tala</title><link rel="stylesheet" href="style.css"></head><body><header><strong>Ask Tala</strong><nav><a href="index.html">Executive summary</a><a href="infrastructure.html">AWS infrastructure design</a><a href="system.html">Your system and system card</a><a href="baseline.html">Your baseline</a><a href="well-architected.html">Well-Architected review</a><a href="operations.html">Monitoring, backup and security</a><a href="automation-incident.html">Automation and the incident</a><a href="results.html">Results</a><a href="next.html">What I would do next</a></nav></header><main><h1>Your system and system card</h1><section><h2>Base system and reskin</h2><p class="todo">TO WRITE: LibreChat v0.8.8, github.com/danny-avila/LibreChat, by Danny Avila and contributors, MIT licence. Describe what you changed.</p><figure class="slot"><div>Add your real screenshot or output for E-01</div><figcaption>E-01: write a caption saying what this shows and when it was taken.</figcaption></figure><figure class="slot"><div>Add your real screenshot or output for E-02</div><figcaption>E-02: write a caption saying what this shows and when it was taken.</figcaption></figure><figure class="slot"><div>Add your real screenshot or output for E-05</div><figcaption>E-05: write a caption saying what this shows and when it was taken.</figcaption></figure></section><section><h2>System card</h2><p class="todo">TO WRITE: Complete all nine headings of Appendix C, including who must not use it and what it cannot do.</p></section></main></body></html>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your system and system card | Ask Tala</title><link rel="stylesheet" href="style.css"></head>
+<body><header><div class="brand">Ask Tala <span>SAM10 Final Project</span></div><nav><a href="index.html">Summary</a><a href="infrastructure.html">Infrastructure</a><a href="system.html" aria-current=page>System card</a><a href="baseline.html">Baseline</a><a href="well-architected.html">Well-Architected</a><a href="operations.html">Operations</a><a href="automation-incident.html">Automation and incident</a><a href="results.html">Results</a><a href="next.html">Next steps</a></nav></header>
+<main><h1>Your system and system card</h1>
+<figure><a href="evidence/e01-chat-answer.png"><img src="evidence/e01-chat-answer.png" loading="lazy" alt="The reskinned interface answering real test questions, 8 November 2026."></a><figcaption><strong>E-01.</strong> The reskinned interface answering real test questions, 8 November 2026.</figcaption></figure>
+<p><strong>E-02.</strong> Deployed at <a href="https://d287m6a2imw4k1.cloudfront.net">https://d287m6a2imw4k1.cloudfront.net</a>. The site requires a login because public sign-up is turned off.</p>
+<p class="todo"><strong>Still to add:</strong> E-05, a real image of plain LibreChat for comparison, with its source credited.</p>
+<h2>System card: Ask Tala</h2>
+<h3>1. What it does</h3>
+<p>Ask Tala answers questions about offices, enrolment steps, fees and deadlines at Tala Ridge College, a fictional college. It only uses three documents that I invented, and it says so when it does not know something.</p>
+<h3>2. Who uses it, and who must not</h3>
+<p><strong>Intended users:</strong> people demonstrating or assessing this student project. <strong>Must not be used for:</strong> real college information, medical, legal or financial advice, or any decision about an identifiable person, such as admissions, grades or scholarships.</p>
+<h3>3. Base system</h3>
+<div class="scroll"><table><thead><tr><th>Item</th><th>Detail</th></tr></thead><tbody><tr><td>Name and version</td><td>LibreChat v0.8.8</td></tr><tr><td>Source</td><td><a href="https://github.com/danny-avila/LibreChat">github.com/danny-avila/LibreChat</a></td></tr><tr><td>Author</td><td>Danny Avila and LibreChat contributors</td></tr><tr><td>Licence</td><td><a href="https://github.com/danny-avila/LibreChat/blob/main/LICENSE">MIT</a></td></tr><tr><td>What it did originally</td><td>A general ChatGPT-style interface for many AI providers</td></tr></tbody></table></div>
+<h3>4. What I changed (the reskin)</h3>
+<div class="scroll"><table><thead><tr><th>Part</th><th>Original</th><th>Mine</th><th>Why</th></tr></thead><tbody><tr><td>Name and branding</td><td>LibreChat name and logo</td><td>Ask Tala, a star logo, and title and icons replaced</td><td>It should be its own product</td></tr><tr><td>Data and content</td><td>None</td><td>Three invented documents, 2.6 KB in total</td><td>Domain knowledge the assistant answers from</td></tr><tr><td>Wording and prompts</td><td>General assistant</td><td>College helpdesk greeting and rules, with fixed refusal wording</td><td>Domain language and safe behaviour</td></tr><tr><td>Interface</td><td>Model picker, agents, presets and more</td><td>Reduced to one assistant; navy and amber colours</td><td>Simpler for students</td></tr><tr><td>AWS services</td><td>None</td><td>S3 content, Parameter Store secrets, CloudWatch logs, SNS alerts</td><td>The required AWS integration, and more</td></tr></tbody></table></div>
+<h3>5. Data</h3>
+<ul>
+<li><strong>Where it came from:</strong> invented for this project, with AI assistance as declared. Three Markdown files: offices (1,046 bytes), enrolment (795) and fees and deadlines (718).</li>
+<li><strong>Anything personal in it:</strong> no, all invented. The only contact email uses the reserved <code>.example</code> domain.</li>
+<li><strong>Sent to a third-party AI service:</strong> the invented documents and each question. A gateway check blocks messages containing an email address, Philippine mobile number or long ID number before they leave AWS.</li>
+</ul>
+<h3>6. How good is it</h3>
+<ul>
+<li><strong>The one number:</strong> 12 out of 12 on the labelled test questions in 14 of 15 scheduled runs, 8 to 10 November 2026. The other run lost one answer to a failed model request.</li>
+<li><strong>How measured:</strong> <code>ops/evaluate.py</code> sends each question through the gateway and checks the answer for an expected phrase.</li>
+<li><strong>What the 12 cover:</strong> 8 answerable, 2 not in the documents, 2 decisions it must refuse.</li>
+<li><strong>Limits of that number:</strong> it uses keyword matching on only 12 questions, and the score varies between runs. A manual run at 12:53 UTC scored 11 of 12, on an answer that was actually correct but worded differently.</li>
+<li><strong>An example it gets wrong:</strong> see the Results page, where it quotes a late fee for a date after enrolment has closed.</li>
+</ul>
+<h3>7. How it is served</h3>
+<ul>
+<li><strong>Where it runs:</strong> Docker on one EC2 t3.small in Sydney, behind CloudFront.</li>
+<li><strong>What calls it:</strong> the web app calls my gateway at <code>/v1/chat/completions</code>, which calls Groq's OpenAI-compatible API.</li>
+<li><strong>The model:</strong> <code>openai/gpt-oss-120b</code>, on Groq's free tier.</li>
+<li><strong>If the model is unavailable:</strong> the user sees an error, the gateway logs the failure, and a failure-rate alarm can fire.</li>
+</ul>
+<h3>8. Limitations and risks</h3>
+<ul>
+<li>It cannot answer anything outside its three documents, and a model can still state something incorrectly or draw an inference the documents do not support.</li>
+<li>The personal-data check only recognises three patterns, so it can miss names and other details.</li>
+<li>It could be misused if someone treated fictional content as real, so the footer states the college is fictional.</li>
+<li>Users must always check important information with the named office.</li>
+</ul>
+<h3>9. Operational summary</h3>
+<ul>
+<li><strong>Code:</strong> <a href="https://github.com/canlasandrikbrenth-source/CanlasA-Finals26">github.com/canlasandrikbrenth-source/CanlasA-Finals26</a></li>
+<li><strong>Backups:</strong> hourly database dump to S3, kept for 14 days.</li>
+<li><strong>How we know it is healthy:</strong> nine CloudWatch alarms and a scheduled test.</li>
+<li><strong>Contact:</strong> Andrik Brenth E. Canlas.</li>
+</ul>
+</main>
+<footer>Andrik Brenth E. Canlas · SAM10 Systems Administration and Maintenance · Tala Ridge College is fictional and all system data is invented.</footer></body></html>
