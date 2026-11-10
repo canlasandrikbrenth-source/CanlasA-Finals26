@@ -23,4 +23,5 @@ th{background:var(--soft)}
 pre{background:#10243b;color:#f5efe1;padding:12px;overflow-x:auto;font:13px/1.5 Consolas,Menlo,monospace}
 code{background:var(--soft);padding:0 3px;font:.88em Consolas,Menlo,monospace;overflow-wrap:anywhere}
 .todo{background:#fdf0cf;border-left:4px solid var(--amber);padding:9px 12px;font-family:system-ui,sans-serif;font-size:15px}
+.sig{max-width:240px;border:0;background:#fff}
 footer{border-top:1px solid var(--line);padding:16px;text-align:center;font:13px/1.5 system-ui,sans-serif;color:#3b5572}
